@@ -18,7 +18,7 @@ readline.parse_and_bind("tab: complete")
 readline.set_completer(complete_path)
 
 def get_folder_path():
-    """通过终端输入获取文件夹路径，兼容所有系统"""
+    """通过终端输入获取文件夹路径，兼容所有系统，修复拖拽反斜杠问题"""
     print("\n请输入要处理的文件夹完整路径（可直接拖拽文件夹到终端）：")
     print("示例：/Users/你的用户名/Desktop/照片文件夹")
     print("(输入完成后按回车键，输入q退出)")
@@ -28,6 +28,10 @@ def get_folder_path():
         # 退出逻辑
         if folder_path.lower() == 'q':
             return None
+        
+        # ============== 核心修复：移除拖拽带来的反斜杠转义字符 ==============
+        folder_path = folder_path.replace('\\', '')
+        
         # 验证路径是否存在且是文件夹
         if os.path.isdir(folder_path):
             return folder_path
@@ -54,7 +58,7 @@ def move_unmatched_raw_files(target_folder):
     # 2. 收集所有JPG文件的名称（去除后缀，不区分大小写）
     jpg_filenames = set()
     for filename in os.listdir(target_folder):
-        # 新增：过滤隐藏文件（以.开头的文件）
+        # 过滤隐藏文件（以.开头的文件）
         if filename.startswith('.'):
             continue
         # 过滤出JPG/JPEG文件（不区分大小写）
@@ -69,7 +73,7 @@ def move_unmatched_raw_files(target_folder):
     moved_count = 0
     failed_files = []
     for filename in os.listdir(target_folder):
-        # 新增：过滤隐藏文件（以.开头的文件）
+        # 过滤隐藏文件（以.开头的文件）
         if filename.startswith('.'):
             continue
         # 只处理CR3/DNG文件（不区分大小写）
@@ -98,7 +102,7 @@ def move_unmatched_raw_files(target_folder):
                     print(f"❌ 移动失败 {filename}: {e}")
                     
     # 输出最终结果
-    print(f"\n==================== 操作完成 ====================")
+    print(f"\n==================== 当前文件夹操作完成 ====================")
     print(f"✅ 成功移动 {moved_count} 个文件到 {dest_folder}")
     if failed_files:
         print(f"❌ 移动失败 {len(failed_files)} 个文件：")
@@ -106,19 +110,46 @@ def move_unmatched_raw_files(target_folder):
             print(f"   - {fn}: {err}")
     else:
         print(f"ℹ️  无文件移动失败")
+    print("=" * 60)
+    
+    return moved_count
+
+def process_all_subfolders(root_folder):
+    """
+    递归遍历根目录 + 所有子文件夹，批量执行文件筛选移动操作
+    :param root_folder: 根文件夹路径
+    """
+    total_moved = 0
+    print(f"\n🚀 开始递归处理所有子文件夹，根目录：{root_folder}")
+    print("=" * 80)
+    
+    # os.walk 递归遍历所有子文件夹
+    for dirpath, dirnames, filenames in os.walk(root_folder):
+        # 跳过隐藏文件夹（macOS/Windows 系统隐藏目录）
+        if os.path.basename(dirpath).startswith('.'):
+            continue
+        
+        print(f"\n📁 当前处理文件夹：{dirpath}")
+        # 对当前文件夹执行核心处理逻辑
+        moved = move_unmatched_raw_files(dirpath)
+        total_moved += moved
+    
+    # 最终汇总统计
+    print(f"\n🎉 所有文件夹处理完成！")
+    print(f"📊 总计移动无匹配JPG的RAW文件：{total_moved} 个")
 
 if __name__ == "__main__":
-    print("=== 筛选无对应JPG的CR3/DNG文件工具 (macOS兼容版) ===")
+    print("=== 筛选无对应JPG的CR3/DNG文件工具 (递归子文件夹+拖拽修复版) ===")
     
-    # 获取文件夹路径（兼容旧版macOS）
+    # 获取文件夹路径（兼容旧版macOS，修复拖拽反斜杠）
     target_folder = get_folder_path()
     
     if not target_folder:
         print("\n🚪 未选择文件夹，程序退出")
     else:
-        print(f"\n📂 已选择文件夹: {target_folder}")
-        # 执行核心逻辑
-        move_unmatched_raw_files(target_folder)
+        print(f"\n📂 已选择根文件夹: {target_folder}")
+        # 执行递归处理所有子文件夹
+        process_all_subfolders(target_folder)
         
     # 暂停查看结果
     input("\n\n按回车键退出...")
