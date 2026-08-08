@@ -1000,13 +1000,12 @@ def set_root():
 
     global ROOT_DIR
 
-
     print(
         "\n📁 输入照片目录"
     )
 
     print(
-        "输入路径后回车，直接回车退出"
+        "拖拽文件夹或输入路径，输入 q 返回"
     )
 
 
@@ -1015,8 +1014,9 @@ def set_root():
         path = input("> ").strip()
 
 
-        # 空输入退出终端
-        if path == "":
+        # 输入 q 返回
+        if path.lower() == "q":
+
             return False
 
 
@@ -1027,9 +1027,11 @@ def set_root():
 
             ROOT_DIR = path
 
+
             print(
                 f"✅ 当前目录: {ROOT_DIR}"
             )
+
 
             return True
 
@@ -1037,8 +1039,6 @@ def set_root():
         print(
             "❌ 路径无效，请重新输入"
         )
-
-
 
 
 # ====================== 颜色显示函数 ======================
@@ -1261,12 +1261,12 @@ def main():
             )
 
 
-        if not set_root():
+            if not set_root():
 
-            break
+                break
 
 
-        continue
+            continue
 
 
 
